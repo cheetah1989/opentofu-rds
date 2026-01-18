@@ -41,6 +41,8 @@ jobs:
 
       - name: Update PR with Plan
         uses: dflook/tofu-plan@v2 #
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path: opentofu_rds_iac
           # GITHUB_TOKEN is available by default
