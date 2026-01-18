@@ -3,7 +3,7 @@ resource "aws_instance" "opentofu_bastion" {
   instance_type               = var.ec2_bastion_instance_type
   subnet_id                   = aws_subnet.opentofuRDS_pubsubnet.id
   vpc_security_group_ids      = [aws_security_group.opentofuRDS_bastion_sg.id]
-  key_name                    = "opentofu_keypair"
+  key_name                    = "opentofu-rds-bastion"
 
   tags = {
     Name    = "opentofu_bastion"
