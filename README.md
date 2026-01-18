@@ -11,8 +11,8 @@ I have create a opentofu project to showcase IaC skills for creating Database In
 5. I will running this code from GitHub Actions
 
 What I intended to demostrate in this repo is:
-IaC lifecycle thinking
-Remote state hygiene
-CI-safe Terraform usage
-RDS in private subnet with bastion
-Free-tier realism (no fantasy architectures)
+1. IaC lifecycle thinking
+2. Remote state hygiene
+3. CI-safe Terraform usage
+4. RDS in private subnet with bastion
+5. Free-tier realism (no fantasy architectures)
