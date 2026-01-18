@@ -1,5 +1,5 @@
 resource "aws_instance" "opentofu_bastion" {
-  ami                         = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (HVM), SSD Volume Type
+  ami                         = "ami-0ced6a024bb18ff2e" # Amazon Linux 2 AMI (HVM), SSD Volume Type
   instance_type               = var.ec2_bastion_instance_type
   subnet_id                   = aws_subnet.opentofuRDS_pubsubnet.id
   vpc_security_group_ids      = [aws_security_group.opentofuRDS_bastion_sg.id]
