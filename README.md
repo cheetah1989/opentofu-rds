@@ -9,3 +9,10 @@ I have create a opentofu project to showcase IaC skills for creating Database In
 3. One t2 micro ec2 bastion host for accessing the RDS in private subnet. 
 4. Obviously RDS instance bare minimum in free tier mysql db.
 5. I will running this code from GitHub Actions
+
+What I intended to demostrate in this repo is:
+IaC lifecycle thinking
+Remote state hygiene
+CI-safe Terraform usage
+RDS in private subnet with bastion
+Free-tier realism (no fantasy architectures)
