@@ -22,13 +22,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Replace with your IAM Role ARN
           aws-region: ap-south-1
 
       - name: Setup OpenTofu CLI
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v4
 
       - name: OpenTofu Init
         id: init
@@ -40,7 +40,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
       - name: Update PR with Plan
-        uses: dflook/tofu-plan@v2 #
+        uses: dflook/tofu-plan@v4 #
         with:
           path: .
           # GITHUB_TOKEN is available by default
