@@ -15,7 +15,8 @@ resource "aws_db_instance" "opentofuRDS" {
     aws_ssm_parameter.opentofu_rds_password,
     aws_db_subnet_group.opentofuRDS_db_subnet_group,
     aws_vpc.opentofuRDS_vpc,
-    aws_subnet.opentofuRDS_privsubnet,
+    aws_subnet.opentofuRDS_privsubnet1,
+    aws_subnet.opentofuRDS_privsubnet2,
     aws_security_group.opentofuRDS_bastion_sg
     ]
 }
@@ -28,7 +29,10 @@ resource "random_password" "rds_password" {
 
 resource "aws_db_subnet_group" "opentofuRDS_db_subnet_group" {
   name       = "opentofu_rds_db_subnet_group"
-  subnet_ids = [aws_subnet.opentofuRDS_privsubnet.id]
+  subnet_ids = [
+          aws_subnet.opentofuRDS_privsubnet1.id,
+          aws_subnet.opentofuRDS_privsubnet2.id
+        ]
 
   tags = {
     Purpose = "Subnet group for RDS instance"
