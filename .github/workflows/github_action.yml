@@ -42,7 +42,7 @@ jobs:
       - name: Update PR with Plan
         uses: dflook/tofu-plan@v2 #
         with:
-          path: .
+          path: cd opentofu_rds_iac && tofu plan -no-color
           # GITHUB_TOKEN is available by default
         if: github.event_name == 'pull_request'
 
