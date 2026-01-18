@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main # Triggers on pull requests to main
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch: 
 
 jobs:
   iac_ci_cd:
@@ -22,10 +22,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::207752776952:role/terra-role # Replace with your IAM Role ARN
-          aws-region: ${{ secrets.AWS_REGION }} # Stored as a GitHub Secret
+          role-to-assume: arn:aws:iam::207752776952:role/GitHubAction_Assume_Role # Replace with your IAM Role ARN
+          aws-region: ap-south-1
 
       - name: Setup OpenTofu CLI
         uses: opentofu/setup-opentofu@v1
@@ -41,8 +41,10 @@ jobs:
 
       - name: Update PR with Plan
         uses: dflook/tofu-plan@v2 #
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          path: .
+          path: opentofu_rds_iac
           # GITHUB_TOKEN is available by default
         if: github.event_name == 'pull_request'
 
