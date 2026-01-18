@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main # Triggers on pull requests to main
-  workflow_dispatch: Manual
+  workflow_dispatch: 
 
 jobs:
   iac_ci_cd:
