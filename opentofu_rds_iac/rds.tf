@@ -15,7 +15,8 @@ resource "aws_db_instance" "opentofuRDS" {
     aws_ssm_parameter.opentofu_rds_password,
     aws_db_subnet_group.opentofuRDS_db_subnet_group,
     aws_vpc.opentofuRDS_vpc,
-    aws_subnet.opentofuRDS_privsubnet,
+    aws_subnet.opentofuRDS_privsubnet1,
+    aws_subnet.opentofuRDS_privsubnet2,
     aws_security_group.opentofuRDS_bastion_sg
     ]
 }
