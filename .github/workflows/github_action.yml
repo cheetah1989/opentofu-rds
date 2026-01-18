@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main # Triggers on pull requests to main
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch: Manual
 
 jobs:
   iac_ci_cd:
@@ -25,7 +25,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::207752776952:role/terra-role # Replace with your IAM Role ARN
-          aws-region: ${{ secrets.AWS_REGION }} # Stored as a GitHub Secret
+          aws-region: ap-south-1
 
       - name: Setup OpenTofu CLI
         uses: opentofu/setup-opentofu@v1
