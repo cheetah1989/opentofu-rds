@@ -7,3 +7,7 @@ variable "ec2_bastion_instance_type" {
   description = "EC2 shape"
   default = "t2.micro"
 }
+
+variable "ec2_bastion_public_key_path" {
+  description = "value"
+}
