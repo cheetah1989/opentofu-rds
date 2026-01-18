@@ -8,6 +8,7 @@ resource "aws_vpc" "opentofuRDS_vpc" {
 resource "aws_subnet" "opentofuRDS_pubsubnet" {
   vpc_id     = aws_vpc.opentofuRDS_vpc.id
   cidr_block = "10.0.1.0/24"
+  availability_zone = "ap-south-1a"
   tags = {
     Purpose = "opentofuRDS_public_subnet"
   }
