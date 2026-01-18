@@ -1,0 +1,51 @@
+name: OpenTofu AWS RDS Deployment
+
+on:
+  push:
+    branches:
+      - main # Triggers on push to the main branch
+  pull_request:
+    branches:
+      - main # Triggers on pull requests to main
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  iac_ci_cd:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for AWS OIDC authentication
+      pull-requests: write # Required for plan comments
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::207752776952:role/terra-role # Replace with your IAM Role ARN
+          aws-region: ${{ secrets.AWS_REGION }} # Stored as a GitHub Secret
+
+      - name: Setup OpenTofu CLI
+        uses: opentofu/setup-opentofu@v1
+
+      - name: OpenTofu Init
+        id: init
+        run: cd opentofu_rds_iac && tofu init
+
+      - name: OpenTofu Plan
+        id: plan
+        run: cd opentofu_rds_iac && tofu plan -no-color
+        if: github.event_name == 'pull_request'
+
+      - name: Update PR with Plan
+        uses: dflook/tofu-plan@v2 #
+        with:
+          path: .
+          # GITHUB_TOKEN is available by default
+        if: github.event_name == 'pull_request'
+
+      - name: OpenTofu Apply
+        run: cd opentofu_rds_iac && tofu apply -auto-approve
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
