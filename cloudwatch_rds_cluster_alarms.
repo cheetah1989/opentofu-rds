@@ -1,0 +1,219 @@
+data "aws_rds_cluster" "clusters" {
+  for_each           = toset(var.rds_cluster)
+  cluster_identifier = each.value
+}
+
+locals {
+  cluster_instances = flatten([
+    for c in data.aws_rds_cluster.clusters :
+    [
+      for i in c.cluster_members :
+      {
+        cluster_id  = c.cluster_identifier
+        instance_id = i
+      }
+    ]
+  ])
+}
+
+locals {
+  instance_map = {
+    for inst in local.cluster_instances :
+    inst.instance_id => inst
+  }
+}
+
+# locals {
+#   cluster_writers = {
+#     for cluster_id, cluster in data.aws_rds_cluster.clusters :
+#     cluster_id => [
+#       for member in cluster.instances :
+#       member.db_instance_identifier
+#       if member.is_cluster_writer
+#     ][0]
+#   }
+# }
+
+data "aws_db_instance" "all_members" {
+  for_each               = toset(flatten([for c in data.aws_rds_cluster.clusters : c.cluster_members]))
+  db_instance_identifier = each.value
+}
+
+locals {
+  cluster_writers = {
+    for cluster_id, cluster in data.aws_rds_cluster.clusters :
+    cluster_id => one([
+      for member_id in cluster.cluster_members :
+      member_id
+      # Logic: If the instance's address matches the cluster's writer endpoint, it's the writer.
+      if data.aws_db_instance.all_members[member_id].address == cluster.endpoint
+    ])
+  }
+}
+
+resource "aws_sns_topic" "prod-rds-cloudwatch-alarm-topic" {
+  name         = "ml-${var.environment}-rds-alarm"
+  display_name = "${var.environment}-db"
+}
+
+resource "aws_sns_topic_subscription" "cloudwatch-alarm-sub-prod-rds" {
+  topic_arn = aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn
+  protocol  = "email"
+  endpoint  = var.email_endpoint
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "low_memory" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-low-memory"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "FreeableMemory"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 2147483648 # 2 GB
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "connections_high" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-high-connections"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "DatabaseConnections"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 100
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "replica_lag" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-replica-lag"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "AuroraReplicaLag"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 1000 # milliseconds
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+  treat_missing_data = "notBreaching"
+  alarm_actions      = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+}
+
+
+
+resource "aws_cloudwatch_metric_alarm" "disk_queue" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-disk-queue-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "DiskQueueDepth"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 64
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+
+}
+
+#MySQL specific:
+resource "aws_cloudwatch_metric_alarm" "binlog_usage" {
+  for_each            = local.cluster_writers
+  alarm_name          = "${each.key}-mysql-binlog-usage"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "BinLogDiskUsage"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 5368709120 # 5 GB
+
+  dimensions = {
+    DBInstanceIdentifier = each.value
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+
+
+}
+
+#PostgreSQL Specific
+resource "aws_cloudwatch_metric_alarm" "txn_disk" {
+  for_each            = local.cluster_writers
+  alarm_name          = "${each.key}-postgres-transaction-disk"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "TransactionDiskUsage"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 5368709120 # 5 GB
+
+  dimensions = {
+    DBInstanceIdentifier = each.value
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "deadlocks" {
+  for_each            = local.instance_map
+  alarm_name          = "${each.key}-deadlocks"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Deadlocks"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 1
+
+  dimensions = {
+    DBInstanceIdentifier = each.key
+  }
+
+  alarm_actions = [aws_sns_topic.prod-rds-cloudwatch-alarm-topic.arn]
+
+
+}
+
+
